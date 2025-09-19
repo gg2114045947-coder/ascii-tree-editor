@@ -6,20 +6,63 @@
     --danger-color: #dc3545;
 }
 
+/* --- 1. 页面基础和Flexbox布局 --- */
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     margin: 0;
-    padding: 20px;
     background-color: var(--background-color);
+    
+    /* 关键：将body设为垂直Flex容器 */
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 40px);
+    height: 100vh; /* 占满整个视口高度 */
 }
 
+/* --- 2. 页面页眉 --- */
+.page-header {
+    display: flex;
+    justify-content: flex-end; /* 将按钮推到右侧 */
+    align-items: center;
+    padding: 10px 20px; /* 控制页眉的内边距和高度 */
+    flex-shrink: 0; /* 防止页眉被压缩 */
+    box-sizing: border-box;
+}
+
+.page-settings-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 24px;
+    color: #555;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.page-settings-button:hover {
+    background-color: #e9e9e9;
+    color: #000;
+}
+
+/* --- 3. 主内容容器 --- */
 .container {
     display: flex;
+    flex-grow: 1; /* 关键：让容器填充所有剩余的垂直空间 */
+    padding: 0 20px 20px 20px;
+    box-sizing: border-box;
+    min-height: 0; /* 修复Flex子项溢出的问题 */
+}
+
+.main-content {
     flex-grow: 1;
-    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
 }
 
 .panel {
@@ -30,18 +73,12 @@ body {
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.main-content {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
 .interactive-tree-panel, .ascii-output-panel {
     flex: 1;
     display: flex;
     flex-direction: column;
     min-height: 0;
+    /* 确保这里没有 margin-top */
 }
 
 .interactive-tree-panel h3 {
@@ -54,6 +91,8 @@ body {
     padding-right: 10px;
 }
 
+
+/* --- 4. 树、菜单、输出框等具体样式 --- */
 #interactive-tree ul {
     padding-left: 20px;
     list-style-type: none;
@@ -77,7 +116,6 @@ body {
     display: inline-block;
 }
 
-/* 行内编辑输入框的样式 */
 .inline-edit-input {
     font-size: 1em;
     padding: 2px 5px;
@@ -113,7 +151,6 @@ body {
     background-color: #e0e0e0;
 }
 
-/* --- 新增：右键菜单样式 --- */
 .context-menu {
     display: none;
     position: absolute;
@@ -154,4 +191,109 @@ body {
     color: #aaa;
     cursor: not-allowed;
     background-color: #fff;
+}
+
+/* --- 新增：模态框 (Modal) 样式 --- */
+
+/* 遮罩层：覆盖整个屏幕的半透明背景 */
+.modal {
+    display: none; /* 默认隐藏 */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.3s ease;
+}
+
+/* 当模态框显示时，我们用JS添加 .open 类 */
+.modal.open {
+    display: flex;
+}
+
+/* 模态框内容：白色的弹窗本身 */
+.modal-content {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    width: 90%;
+    max-width: 400px;
+    animation: slideIn 0.3s ease;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #aaa;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+.close-button:hover {
+    color: #333;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.setting-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.setting-item label {
+    font-weight: bold;
+}
+.setting-item select {
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    flex-grow: 1;
+}
+
+.modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #eee;
+    text-align: right;
+}
+
+.btn-close-footer {
+    padding: 8px 16px;
+    border: 1px solid #ccc;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.btn-close-footer:hover {
+    background-color: #e0e0e0;
+}
+
+/* 定义动画效果 */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from { transform: translateY(-30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }

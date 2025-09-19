@@ -3,15 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>交互式ASCII树编辑器 (V2)</title>
+    <title>交互式ASCII树编辑器 (V2.2)</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+    <header class="page-header">
+        <button id="page-settings-btn" class="page-settings-button" title="设置">⚙️</button>
+    </header>
+
     <div class="container">
         <div class="main-content">
             <div class="panel interactive-tree-panel">
-                <h3>交互式预览 (双击编辑, 右键操作)</h3>
+                <h3>交互式预览</h3>
                 <div id="interactive-tree" class="panel-content">
                     </div>
             </div>
@@ -31,6 +35,29 @@
         <li class="separator"></li>
         <li data-action="delete" class="danger">删除节点</li>
     </ul>
+    
     <script src="script.js" defer></script>
-</body>
+
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>设置</h2>
+                <button class="close-button" title="关闭">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-item">
+                    <label for="branch-style-select">树枝样式:</label>
+                    <select id="branch-style-select" name="branch-style">
+                        <option value="thick">粗线 (┗━━)</option>
+                        <option value="thin">细线 (└──)</option>
+                        <option value="double">双线 (╚══)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-close-footer">关闭</button>
+            </div>
+        </div>
+    </div>
+    </body>
 </html>
