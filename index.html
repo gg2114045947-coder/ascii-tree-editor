@@ -3,76 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>交互式ASCII树编辑器 (重构版)</title>
+    <title>交互式ASCII树编辑器 (V2)</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <main class="container">
-        <aside class="panel controls-panel">
-            <button id="settings-btn" class="settings-button" title="设置" aria-label="打开设置">⚙️</button>
-            <h3>控制台</h3>
-            <div class="control-group">
-                <label for="node-text">节点文本:</label>
-                <input type="text" id="node-text" placeholder="输入文本后操作">
-            </div>
-            <div class="control-group">
-                <label>操作:</label>
-                <div class="buttons">
-                    <button id="btn-add-child">添加子节点</button>
-                    <button id="btn-add-sibling">添加同级</button>
-                    <button id="btn-edit">更新选中</button>
-                    <button id="btn-delete">删除选中</button>
-                </div>
-            </div>
-             <div class="control-group">
-                <label>提示:</label>
-                <p class="help-text">
-                    1. 在下方“交互式预览”区域点击节点以选中。<br>
-                    2. 在输入框中填写文本，然后点击按钮进行操作。
-                </p>
-            </div>
-        </aside>
-
+    <div class="container">
         <div class="main-content">
-            <section class="panel interactive-tree-panel">
-                <h3>交互式预览</h3>
-                <div id="interactive-tree" class="panel-content interactive-tree">
+            <div class="panel interactive-tree-panel">
+                <h3>交互式预览 (双击编辑, 右键操作)</h3>
+                <div id="interactive-tree" class="panel-content">
                     </div>
-            </section>
-            <section class="panel ascii-output-panel">
+            </div>
+            <div class="panel ascii-output-panel">
                 <h3>ASCII 输出</h3>
                 <div class="panel-content">
-                    <textarea id="ascii-output" readonly aria-label="生成的ASCII树文本"></textarea>
+                    <textarea id="ascii-output" readonly></textarea>
                 </div>
                 <button id="copy-button">复制结果</button>
-            </section>
-        </div>
-    </main>
-
-    <div id="settings-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden>
-        <div class="modal__content">
-            <header class="modal__header">
-                <h2 id="modal-title" class="modal__title">设置</h2>
-                <button class="modal__close-button" title="关闭" aria-label="关闭设置弹窗">&times;</button>
-            </header>
-            <div class="modal__body">
-                <p>这里可以放置您的设置选项。</p>
-                <div class="setting-item">
-                    <label for="theme-select">主题:</label>
-                    <select id="theme-select" name="theme">
-                        <option value="light">明亮</option>
-                        <option value="dark" disabled>黑暗 (待实现)</option>
-                    </select>
-                </div>
             </div>
-            <footer class="modal__footer">
-                <button class="modal__close-footer-btn">关闭</button>
-            </footer>
         </div>
     </div>
 
+    <ul id="context-menu" class="context-menu">
+        <li data-action="add-child">添加子节点</li>
+        <li data-action="add-sibling">添加同级节点</li>
+        <li class="separator"></li>
+        <li data-action="delete" class="danger">删除节点</li>
+    </ul>
     <script src="script.js" defer></script>
-    
 </body>
 </html>

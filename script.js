@@ -1,7 +1,4 @@
-// 使用IIFE创建一个独立的作用域
 (function() {
-    'use strict';
-
     // --- 数据模型 ---
     let nodeIdCounter = 0;
     class Node {
@@ -17,6 +14,7 @@
     const state = {
         root: new Node('根节点'),
         selectedNode: null,
+        contextMenuNode: null, // 记录右键点击的节点
     };
     state.selectedNode = state.root;
 
@@ -24,48 +22,31 @@
     const dom = {
         interactiveTree: document.getElementById('interactive-tree'),
         asciiOutput: document.getElementById('ascii-output'),
-        nodeText: document.getElementById('node-text'),
-        btnAddChild: document.getElementById('btn-add-child'),
-        btnAddSibling: document.getElementById('btn-add-sibling'),
-        btnEdit: document.getElementById('btn-edit'),
-        btnDelete: document.getElementById('btn-delete'),
         btnCopy: document.getElementById('copy-button'),
-        settingsBtn: document.getElementById('settings-btn'),
-        settingsModal: document.getElementById('settings-modal'),
-        closeModalButtons: document.querySelectorAll('.modal__close-button, .modal__close-footer-btn'),
+        contextMenu: document.getElementById('context-menu'),
     };
 
-    // --- 渲染模块 (View) ---
-    // 职责：只根据当前 state 来渲染UI，不包含任何业务逻辑
-    const view = {
-        render() {
+    // --- 渲染模块 (UI Rendering) ---
+    const ui = {
+        render: function() {
             this.renderInteractiveTree();
             this.renderAsciiTree();
-            this.updateButtonStates();
         },
-
-        renderInteractiveTree() {
+        renderInteractiveTree: function() {
             dom.interactiveTree.innerHTML = '';
             const rootUl = document.createElement('ul');
             rootUl.appendChild(this.createInteractiveNodeElement(state.root));
             dom.interactiveTree.appendChild(rootUl);
         },
-
-        createInteractiveNodeElement(node) {
+        createInteractiveNodeElement: function(node) {
             const li = document.createElement('li');
             const span = document.createElement('span');
-            
-            li.className = 'interactive-tree__node';
-            span.className = 'interactive-tree__text';
-            
             li.dataset.id = node.id;
             span.textContent = node.text;
 
             if (state.selectedNode && node.id === state.selectedNode.id) {
-                li.classList.add('is-selected');
-                dom.nodeText.value = node.text;
+                li.classList.add('selected');
             }
-
             li.appendChild(span);
 
             if (node.children.length > 0) {
@@ -75,49 +56,28 @@
             }
             return li;
         },
-
-        renderAsciiTree() {
+        renderAsciiTree: function() {
             const lines = [];
             this.generateAscii(state.root, '', true, lines);
             dom.asciiOutput.value = lines.join('\n');
         },
-
-        generateAscii(node, prefix, isLast, lines) {
+        generateAscii: function(node, prefix, isLast, lines) {
             const currentPrefix = prefix + (isLast ? '┗━━ ' : '┣━━ ');
             lines.push(node.parent === null ? node.text : currentPrefix + node.text);
-            
-            node.children.forEach((child, index, arr) => {
+            const childrenCount = node.children.length;
+            if (childrenCount > 0) {
                 const newPrefix = prefix + (isLast ? '    ' : '┃   ');
-                this.generateAscii(child, newPrefix, index === arr.length - 1, lines);
-            });
-        },
-
-        updateButtonStates() {
-            const isRootSelected = state.selectedNode === state.root;
-            dom.btnAddSibling.disabled = isRootSelected;
-            dom.btnDelete.disabled = isRootSelected;
-            dom.btnEdit.disabled = !state.selectedNode;
-            dom.btnAddChild.disabled = !state.selectedNode;
-        },
-
-        toggleModal(show) {
-            if (show) {
-                dom.settingsModal.hidden = false;
-                dom.settingsModal.classList.add('is-open');
-            } else {
-                dom.settingsModal.classList.remove('is-open');
-                // 监听动画结束事件，结束后再隐藏，优化体验
-                dom.settingsModal.addEventListener('animationend', () => {
-                    dom.settingsModal.hidden = true;
-                }, { once: true });
+                node.children.forEach((child, index) => {
+                    const isChildLast = index === childrenCount - 1;
+                    this.generateAscii(child, newPrefix, isChildLast, lines);
+                });
             }
         },
     };
     
-    // --- 操作模块 (Actions) ---
-    // 职责：只修改 state，不直接接触 DOM
+    // --- 操作模块 (Actions & Logic) ---
     const actions = {
-        findNodeById(node, id) {
+        findNodeById: function(node, id) {
             if (node.id === id) return node;
             for (const child of node.children) {
                 const found = this.findNodeById(child, id);
@@ -125,139 +85,148 @@
             }
             return null;
         },
-
-        selectNode(nodeId) {
-            const newSelectedNode = this.findNodeById(state.root, nodeId);
-            if (newSelectedNode) {
-                state.selectedNode = newSelectedNode;
-            }
+        addChild: function(parentNode) {
+            const text = prompt("请输入新子节点的文本:", "新节点");
+            if (!text) return; // 用户取消输入
+            const newNode = new Node(text, parentNode);
+            parentNode.children.push(newNode);
+            ui.render();
         },
-
-        addChild(text) {
-            if (!text || !state.selectedNode) return false;
-            const newNode = new Node(text, state.selectedNode);
-            state.selectedNode.children.push(newNode);
-            return true;
-        },
-
-        addSibling(text) {
-            if (!text || !state.selectedNode || state.selectedNode === state.root) return false;
-            const parent = state.selectedNode.parent;
+        addSibling: function(siblingNode) {
+            if (siblingNode === state.root) return;
+            const text = prompt("请输入新同级节点的文本:", "新节点");
+            if (!text) return; // 用户取消输入
+            const parent = siblingNode.parent;
             const newNode = new Node(text, parent);
-            const index = parent.children.indexOf(state.selectedNode);
+            const index = parent.children.indexOf(siblingNode);
             parent.children.splice(index + 1, 0, newNode);
-            return true;
+            ui.render();
         },
-
-        editNode(text) {
-            if (!text || !state.selectedNode) return false;
-            state.selectedNode.text = text;
-            return true;
+        deleteNode: function(nodeToDelete) {
+            if (nodeToDelete === state.root) return;
+            if (!confirm(`确定要删除节点 "${nodeToDelete.text}" 及其所有子节点吗？`)) return;
+            const parent = nodeToDelete.parent;
+            const index = parent.children.indexOf(nodeToDelete);
+            parent.children.splice(index, 1);
+            state.selectedNode = parent; // 选中父节点
+            ui.render();
         },
-
-        deleteNode() {
-            if (!state.selectedNode || state.selectedNode === state.root) return false;
-            const parent = state.selectedNode.parent;
-            parent.children.splice(parent.children.indexOf(state.selectedNode), 1);
-            state.selectedNode = parent;
-            return true;
+        copyAscii: function() {
+            dom.asciiOutput.select();
+            document.execCommand('copy');
+            const originalText = dom.btnCopy.textContent;
+            dom.btnCopy.textContent = '已复制!';
+            setTimeout(() => { dom.btnCopy.textContent = originalText; }, 1500);
         },
     };
 
-    // --- 控制器/事件绑定 (Controller / Event Listeners) ---
-    // 职责：连接用户输入和应用逻辑，调用 actions 和 view
+    // --- 新增：行内编辑逻辑 ---
+    function handleDoubleClick(e) {
+        const span = e.target.closest('span');
+        if (!span) return;
+        
+        const li = span.parentElement;
+        const nodeId = parseInt(li.dataset.id, 10);
+        const nodeToEdit = actions.findNodeById(state.root, nodeId);
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'inline-edit-input';
+        input.value = nodeToEdit.text;
+
+        li.replaceChild(input, span);
+        input.focus();
+        input.select();
+
+        const saveEdit = () => {
+            nodeToEdit.text = input.value.trim() || "未命名节点";
+            li.replaceChild(span, input); // 恢复span
+            ui.render(); // 重新渲染以更新所有视图
+        };
+        
+        input.addEventListener('blur', saveEdit);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') input.blur();
+            if (e.key === 'Escape') {
+                li.replaceChild(span, input); // 取消编辑
+                input.removeEventListener('blur', saveEdit);
+            }
+        });
+    }
+
+    // --- 新增：右键菜单逻辑 ---
+    function handleContextMenu(e) {
+        e.preventDefault();
+        const li = e.target.closest('li');
+        if (!li) return;
+
+        const nodeId = parseInt(li.dataset.id, 10);
+        state.contextMenuNode = actions.findNodeById(state.root, nodeId);
+        
+        // 更新并显示菜单
+        dom.contextMenu.style.top = `${e.clientY}px`;
+        dom.contextMenu.style.left = `${e.clientX}px`;
+        
+        // 根据所选节点更新菜单项状态
+        const isRoot = state.contextMenuNode === state.root;
+        dom.contextMenu.querySelector('[data-action="add-sibling"]').classList.toggle('disabled', isRoot);
+        dom.contextMenu.querySelector('[data-action="delete"]').classList.toggle('disabled', isRoot);
+        
+        dom.contextMenu.style.display = 'block';
+    }
+
+    // --- 事件绑定 (Event Listeners) ---
     function bindEvents() {
+        // 节点选择
         dom.interactiveTree.addEventListener('click', (e) => {
-            const li = e.target.closest('.interactive-tree__node');
+            const li = e.target.closest('li');
             if (li && li.dataset.id) {
-                actions.selectNode(parseInt(li.dataset.id, 10));
-                view.render();
+                state.selectedNode = actions.findNodeById(state.root, parseInt(li.dataset.id, 10));
+                ui.render();
             }
         });
 
-        dom.btnAddChild.addEventListener('click', () => {
-            const text = dom.nodeText.value.trim();
-            if (actions.addChild(text)) {
-                dom.nodeText.value = '';
-                dom.nodeText.focus();
-                view.render();
-            }
+        // 绑定双击编辑
+        dom.interactiveTree.addEventListener('dblclick', handleDoubleClick);
+
+        // 绑定右键菜单
+        dom.interactiveTree.addEventListener('contextmenu', handleContextMenu);
+
+        // 点击其他地方隐藏右键菜单
+        window.addEventListener('click', () => {
+            dom.contextMenu.style.display = 'none';
         });
 
-        dom.btnAddSibling.addEventListener('click', () => {
-            const text = dom.nodeText.value.trim();
-            if (actions.addSibling(text)) {
-                dom.nodeText.value = '';
-                dom.nodeText.focus();
-                view.render();
-            }
-        });
+        // 右键菜单项的点击事件
+        dom.contextMenu.addEventListener('click', (e) => {
+            const target = e.target;
+            if (target.tagName !== 'LI' || target.classList.contains('disabled')) return;
 
-        dom.btnEdit.addEventListener('click', () => {
-            const text = dom.nodeText.value.trim();
-            if (actions.editNode(text)) {
-                view.render();
-            }
-        });
+            const action = target.dataset.action;
+            const node = state.contextMenuNode;
 
-        dom.btnDelete.addEventListener('click', () => {
-            if (actions.deleteNode()) {
-                view.render();
+            switch (action) {
+                case 'add-child':
+                    actions.addChild(node);
+                    break;
+                case 'add-sibling':
+                    actions.addSibling(node);
+                    break;
+                case 'delete':
+                    actions.deleteNode(node);
+                    break;
             }
+            dom.contextMenu.style.display = 'none'; // 操作后隐藏
         });
         
-        dom.nodeText.addEventListener('keyup', (e) => {
-            if (e.key === 'Enter') {
-                dom.btnAddChild.click(); // 触发添加子节点按钮的点击事件
-            }
-        });
-
-        dom.btnCopy.addEventListener('click', async () => {
-            if (!navigator.clipboard) {
-                alert('您的浏览器不支持现代剪贴板API，请手动复制。');
-                return;
-            }
-            try {
-                await navigator.clipboard.writeText(dom.asciiOutput.value);
-                const originalText = dom.btnCopy.textContent;
-                dom.btnCopy.textContent = '已复制!';
-                dom.btnCopy.disabled = true;
-                setTimeout(() => {
-                    dom.btnCopy.textContent = originalText;
-                    dom.btnCopy.disabled = false;
-                }, 1500);
-            } catch (err) {
-                console.error('复制失败: ', err);
-                alert('复制失败，请检查浏览器权限或手动复制。');
-            }
-        });
-
-        // --- Modal Events ---
-        dom.settingsBtn.addEventListener('click', () => view.toggleModal(true));
-        
-        dom.closeModalButtons.forEach(button => {
-            button.addEventListener('click', () => view.toggleModal(false));
-        });
-        
-        dom.settingsModal.addEventListener('click', (e) => {
-            if (e.target === dom.settingsModal) {
-                view.toggleModal(false);
-            }
-        });
-        
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && dom.settingsModal.classList.contains('is-open')) {
-                view.toggleModal(false);
-            }
-        });
+        dom.btnCopy.addEventListener('click', actions.copyAscii);
     }
 
     // --- 应用初始化 ---
     function init() {
         bindEvents();
-        view.render(); // 首次渲染
+        ui.render(); // 首次渲染
     }
     
     document.addEventListener('DOMContentLoaded', init);
-
 })();
